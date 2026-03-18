@@ -28,6 +28,7 @@ public class AuthController {
 
         return Map.of(
                 "isLoggedIn", true,
+                "spotifyId", user.getName(),
                 "name", user.getAttribute("display_name"),
                 "email", user.getAttribute("email"),
                 "image_url", imageUrl

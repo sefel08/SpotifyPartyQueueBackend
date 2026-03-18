@@ -30,6 +30,7 @@ public class SecurityConfig {
                         .requestMatchers("/login/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/spotify/search").permitAll()
                         .requestMatchers("/api/spotify/playlist").permitAll()
+                        .requestMatchers("/api/party/join").permitAll()
                         .anyRequest().authenticated()
                 )
 

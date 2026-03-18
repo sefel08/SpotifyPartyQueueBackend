@@ -1,4 +1,4 @@
-package org.sfl.spotifybackendnew;
+package org.sfl.spotifybackendnew.Services.Spotify;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
