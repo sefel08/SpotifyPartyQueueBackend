@@ -1,30 +1,34 @@
 package org.sfl.spotifybackendnew.Services.Party;
 
+import lombok.extern.slf4j.Slf4j;
+import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Exceptions.PartyNotFoundException;
-import org.sfl.spotifybackendnew.PartySession;
+import org.sfl.spotifybackendnew.DTOs.Party.PartySession;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 public class PartyService {
-    //SpotifyUserIf - PartySession
+    // (spotifyId - party) map
     private final Map<String, PartySession> partySessionMap = new ConcurrentHashMap<>();
 
     public void createParty(String spotifyUserId) {
-        PartySession userSession = partySessionMap.get(spotifyUserId);
-        if(userSession != null) return;
+        PartySession userPartySession = partySessionMap.get(spotifyUserId);
+        if(userPartySession != null) return;
 
-        //create new session for user
-        PartySession partySession = new PartySession(spotifyUserId);
-        partySessionMap.put(spotifyUserId, partySession);
+        log.info("Creating party for user with spotify id {}", spotifyUserId);
+
+        //create new party for user
+        PartySession party = new PartySession(spotifyUserId);
+        partySessionMap.put(spotifyUserId, party);
     }
-    public UUID joinParty(String spotifyOwnerId) {
-        return Optional.ofNullable(partySessionMap.get(spotifyOwnerId))
-                .map(PartySession::addUser)
-                .orElseThrow(() -> new PartyNotFoundException(spotifyOwnerId));
+    public void joinParty(String partyId, UserData user) {
+        PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
+                .orElseThrow(() -> new PartyNotFoundException(partyId));
+        party.addUser(user.getUserId());
     }
 }

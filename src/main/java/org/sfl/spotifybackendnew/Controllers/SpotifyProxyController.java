@@ -1,7 +1,7 @@
-package org.sfl.spotifybackendnew;
+package org.sfl.spotifybackendnew.Controllers;
 
-import org.sfl.spotifybackendnew.MusicDTOs.Playlist;
-import org.sfl.spotifybackendnew.MusicDTOs.Track;
+import org.sfl.spotifybackendnew.DTOs.Music.Playlist;
+import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.Services.Spotify.SpotifyProxyService;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;

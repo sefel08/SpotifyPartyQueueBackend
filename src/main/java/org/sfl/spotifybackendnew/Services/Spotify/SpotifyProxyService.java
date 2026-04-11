@@ -2,9 +2,8 @@ package org.sfl.spotifybackendnew.Services.Spotify;
 
 import org.sfl.spotifybackendnew.Exceptions.SpotifyClientException;
 import org.sfl.spotifybackendnew.Exceptions.SpotifyServiceException;
-import org.sfl.spotifybackendnew.MusicDTOs.Playlist;
-import org.sfl.spotifybackendnew.MusicDTOs.Track;
-import org.sfl.spotifybackendnew.SpotifyClient;
+import org.sfl.spotifybackendnew.DTOs.Music.Playlist;
+import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.SpotifyDTOs.ResponseDTOs.SpotifyGetUserPlaylistsResponse;
 import org.sfl.spotifybackendnew.SpotifyDTOs.ResponseDTOs.SpotifySearchResponse;
 import org.sfl.spotifybackendnew.SpotifyDTOs.SubDTOs.*;

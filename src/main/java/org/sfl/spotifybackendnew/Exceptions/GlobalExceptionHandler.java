@@ -1,6 +1,5 @@
-package org.sfl.spotifybackendnew;
+package org.sfl.spotifybackendnew.Exceptions;
 
-import org.sfl.spotifybackendnew.Exceptions.PartyNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
