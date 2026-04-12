@@ -2,7 +2,7 @@ package org.sfl.spotifybackendnew.Configs;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
-import org.sfl.spotifybackendnew.Services.User.UserService;
+import org.sfl.spotifybackendnew.Services.User.UserSessionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,11 +23,11 @@ import java.util.UUID;
 public class SecurityConfig {
 
     private final ClientRegistrationRepository clientRegistrationRepository;
-    private final UserService userService;
+    private final UserSessionService userSessionService;
 
-    public SecurityConfig(ClientRegistrationRepository clientRegistrationRepository, UserService userService) {
+    public SecurityConfig(ClientRegistrationRepository clientRegistrationRepository, UserSessionService userSessionService) {
         this.clientRegistrationRepository = clientRegistrationRepository;
-        this.userService = userService;
+        this.userSessionService = userSessionService;
     }
 
 
@@ -94,7 +94,7 @@ public class SecurityConfig {
                 session.removeAttribute("ORIGINAL_PARTY_ID");
             }
 
-            userService.initializeSessionAfterSpotifyLogin(authentication, request, response, oldGuestId, oldPartyId);
+            userSessionService.initializeSessionAfterSpotifyLogin(authentication, request, response, oldGuestId, oldPartyId);
             response.sendRedirect("http://127.0.0.1:5173");
         };
     }

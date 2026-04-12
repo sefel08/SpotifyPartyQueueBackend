@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
+import org.sfl.spotifybackendnew.Services.Party.PartyService;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,6 +13,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.session.HttpSessionDestroyedEvent;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,8 +22,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-public class UserService {
-
+public class UserSessionService {
     public void initializeSessionForGuest(HttpServletRequest request, HttpServletResponse response, String displayName) {
         UserData userData = new UserData(
                 UUID.randomUUID(),

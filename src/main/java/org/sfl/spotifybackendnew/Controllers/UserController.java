@@ -2,7 +2,7 @@ package org.sfl.spotifybackendnew.Controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.sfl.spotifybackendnew.Services.User.UserService;
+import org.sfl.spotifybackendnew.Services.User.UserSessionService;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/user")
 public class UserController {
 
-    private final UserService userService;
+    private final UserSessionService userSessionService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
+    public UserController(UserSessionService userSessionService) {
+        this.userSessionService = userSessionService;
     }
 
     @PostMapping("/login-as-guest")
@@ -37,7 +37,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Display name must be less than 20 characters");
         }
 
-        userService.initializeSessionForGuest(request, response, displayName);
+        userSessionService.initializeSessionForGuest(request, response, displayName);
 
         return ResponseEntity.ok().build();
     }

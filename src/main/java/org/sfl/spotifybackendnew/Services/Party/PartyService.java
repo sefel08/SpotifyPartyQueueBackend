@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -30,5 +31,11 @@ public class PartyService {
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         party.addUser(user.getUserId());
+        user.setPartyId(partyId);
+    }
+    public void removeUserFromParty(String partyId, UUID userId) {
+        PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
+                .orElseThrow(() -> new PartyNotFoundException(partyId));
+        party.removeUser(userId);
     }
 }

@@ -27,11 +27,11 @@ public class PartySession {
 
         PartyUser user = new PartyUser(userId);
         userMap.put(userId, user);
+        joinOrder.add(userId);
 
         log.info("Adding user {} to party with id {}", userId, partyId);
         log.info("Current users in party {}: {} ({})", partyId, userMap.keySet(), userMap.size());
     }
-
     public void addToUserQueue(UUID userId, Track track) {
         PartyUser user = getPartyUser(userId);
         if (user != null) {
@@ -41,5 +41,13 @@ public class PartySession {
 
     private PartyUser getPartyUser(UUID userId) {
         return userMap.get(userId);
+    }
+    public void removeUser(UUID userId) {
+        if (userMap.containsKey(userId)) {
+            userMap.remove(userId);
+            joinOrder.remove(userId);
+            log.info("Removed user {} from party with id {}", userId, partyId);
+            log.info("Current users in party {}: {} ({})", partyId, userMap.keySet(), userMap.size());
+        }
     }
 }

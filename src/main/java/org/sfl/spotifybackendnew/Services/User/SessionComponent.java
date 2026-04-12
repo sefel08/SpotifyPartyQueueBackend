@@ -1,0 +1,35 @@
+package org.sfl.spotifybackendnew.Services.User;
+
+import lombok.extern.slf4j.Slf4j;
+import org.sfl.spotifybackendnew.DTOs.User.UserData;
+import org.sfl.spotifybackendnew.Services.Party.PartyService;
+import org.springframework.context.event.EventListener;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.web.session.HttpSessionDestroyedEvent;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class SessionComponent {
+
+    private final PartyService partyService;
+
+    public SessionComponent(PartyService partyService) {
+        this.partyService = partyService;
+    }
+
+    @EventListener
+    public void handleSessionTermination(HttpSessionDestroyedEvent event) {
+        for (SecurityContext securityContext : event.getSecurityContexts()) {
+            Authentication auth = securityContext.getAuthentication();
+
+            if (auth != null && auth.getPrincipal() instanceof UserData user) {
+                log.info("Session of user {} timed out. Removing from party: {}", user.getDisplayName(), user.getPartyId() != null ? user.getPartyId() : "None");
+
+                if (user.getPartyId() != null)
+                    partyService.removeUserFromParty(user.getPartyId(), user.getUserId());
+            }
+        }
+    }
+}
