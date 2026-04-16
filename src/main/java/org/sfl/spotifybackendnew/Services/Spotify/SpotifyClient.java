@@ -1,5 +1,6 @@
 package org.sfl.spotifybackendnew.Services.Spotify;
 
+import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.Exceptions.SpotifyClientException;
 import org.sfl.spotifybackendnew.SpotifyDTOs.ResponseDTOs.SpotifyGetUserPlaylistsResponse;
 import org.sfl.spotifybackendnew.SpotifyDTOs.ResponseDTOs.SpotifySearchResponse;
@@ -108,6 +109,25 @@ public class SpotifyClient {
 
         } catch (Exception e) {
             throw new SpotifyClientException("Failed to perform search: " + e.getMessage(), e);
+        }
+    }
+    public SpotifyTrack getTrack(String trackId) {
+        try {
+            String url = BASE_URL + "/tracks/" + trackId;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(spotifyTokenService.getApplicationToken());
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            return restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    SpotifyTrack.class
+            ).getBody();
+
+        } catch (Exception e) {
+            throw new SpotifyClientException("Failed to fetch track: " + e.getMessage(), e);
         }
     }
 }

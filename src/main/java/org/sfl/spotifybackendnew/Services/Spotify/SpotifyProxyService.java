@@ -22,6 +22,24 @@ public class SpotifyProxyService {
         this.spotifyClient = spotifyClient;
     }
 
+    public Track getTrack(String trackId) {
+        try {
+            SpotifyTrack spotifyTrack = spotifyClient.getTrack(trackId);
+
+            if (spotifyTrack == null) {
+                return null;
+            }
+
+            return mapToTrackDTO(spotifyTrack);
+
+        } catch (SpotifyClientException e) {
+            System.err.println("Error fetching track: " + e.getMessage());
+            throw new SpotifyServiceException("Failed to fetch track");
+        } catch (Exception e) {
+            System.err.println("Unexpected error fetching track: " + e.getMessage());
+            return null;
+        }
+    }
     public List<Track> searchTracks(String query) {
         try {
             SpotifySearchResponse response = spotifyClient.search(query);
