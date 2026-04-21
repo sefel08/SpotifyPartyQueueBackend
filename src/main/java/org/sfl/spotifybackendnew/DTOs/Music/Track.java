@@ -16,4 +16,5 @@ public class Track {
     private String imageUrl;
     private long durationMs;
     private String spotifyUrl;
+    private String uri;
 }

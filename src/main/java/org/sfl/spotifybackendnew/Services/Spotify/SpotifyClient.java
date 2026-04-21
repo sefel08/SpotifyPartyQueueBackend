@@ -9,12 +9,16 @@ import org.sfl.spotifybackendnew.SpotifyDTOs.SubDTOs.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Component
@@ -31,6 +35,7 @@ public class SpotifyClient {
         this.spotifyTokenService = spotifyTokenService;
     }
 
+    // proxy service
     public SpotifyGetUserPlaylistsResponse getUserPlaylists(String accessToken) {
         try {
             String url = BASE_URL + "/me/playlists";
@@ -128,6 +133,46 @@ public class SpotifyClient {
 
         } catch (Exception e) {
             throw new SpotifyClientException("Failed to fetch track: " + e.getMessage(), e);
+        }
+    }
+
+    // player service
+    public void addTrackToQueue(String accessToken, String trackUri, String deviceId) {
+        try {
+            String url = BASE_URL + "/me/player/play?device_id=" + deviceId;
+
+            Map<String, String> body = new HashMap<>();
+            body.put("context_uri", "");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
+
+            restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    entity,
+                    Void.class
+            );
+        } catch (Exception e) {
+            throw new SpotifyClientException("Failed to add track to queue: " + e.getMessage(), e);
+        }
+        try {
+            String url = BASE_URL + "/me/player/queue?uri=" + trackUri + "&device_id=" + deviceId;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    Void.class
+            );
+        } catch (Exception e) {
+            throw new SpotifyClientException("Failed to add track to queue: " + e.getMessage(), e);
         }
     }
 }

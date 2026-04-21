@@ -39,10 +39,13 @@ public class AuthController {
         status.put("imageUrl", user.getImageUrl());
         status.put("smallImageUrl", user.getSmallImageUrl());
 
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
-        if (authorizedClient != null)
-            status.put("spotifyUserToken", authorizedClient.getAccessToken().getTokenValue());
-        else status.put("spotifyUserToken", null);
+        String spotifyUserToken = null;
+        if (authentication != null && authentication.getName() != null) {
+            OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
+            if (authorizedClient != null)
+                spotifyUserToken = authorizedClient.getAccessToken().getTokenValue();
+        }
+        status.put("spotifyUserToken", spotifyUserToken);
 
         return status;
     }

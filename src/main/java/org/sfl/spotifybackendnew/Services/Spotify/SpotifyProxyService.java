@@ -112,7 +112,8 @@ public class SpotifyProxyService {
                 getArtistNames(track.getArtists()),
                 getImageUrl(track.getImages()),
                 track.getDurationMs(),
-                track.getSpotifyUrl()
+                track.getSpotifyUrl(),
+                track.getUri()
         );
     }
     private Playlist mapToPlaylistDTO(SpotifySimplePlaylist playlist) {

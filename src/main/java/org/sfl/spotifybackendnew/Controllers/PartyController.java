@@ -9,6 +9,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/party")
@@ -18,6 +20,22 @@ public class PartyController {
 
     public PartyController(PartyService partyService) {
         this.partyService = partyService;
+    }
+
+    @GetMapping("/status")
+    public Map<String, Object> checkPartyStatus(@AuthenticationPrincipal UserData user) {
+        boolean inParty = user.getPartyId() != null;
+        String partyId = user.getPartyId();
+
+        if (inParty) {
+            return Map.of(
+                    "inParty", inParty,
+                    "partyId", partyId,
+                    "isHost", Objects.equals(user.getSpotifyId(), partyId)
+            );
+        }
+
+        return Map.of("inParty", inParty);
     }
 
     // only for authenticated via spotify users, so UserData always contain spotifyId

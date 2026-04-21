@@ -17,6 +17,7 @@ public class SpotifyTrack {
     private long durationMs;
     @JsonProperty("href")
     private String spotifyUrl;
+    private String uri;
 
     public List<SpotifyImage> getImages() {
         return albumObject.getImages();
