@@ -15,6 +15,7 @@ public class SmartQueue {
     private final CopyOnWriteArrayList<UUID> joinOrder;
     private int playingUserIndex = 0;
 
+    // only for displaying whole queue
     private final AtomicReference<List<AddedTrack>> cachedQueue = new AtomicReference<>(new ArrayList<>());
 
     public SmartQueue(Map<UUID, PartyUser> userMap, CopyOnWriteArrayList<UUID> joinOrder) {
@@ -25,6 +26,21 @@ public class SmartQueue {
     public List<AddedTrack> getQueue() {
         refreshQueue();
         return cachedQueue.get();
+    }
+
+    public Track pollTrack() {
+        for (int i = 0; i < joinOrder.size(); i++) {
+            PartyUser currentUser = userMap.get(joinOrder.get(playingUserIndex));
+            List<Track> currentUserQueue = currentUser.getQueue();
+            if (!currentUserQueue.isEmpty()) {
+                Track trackToPlay = currentUserQueue.getFirst();
+                currentUser.removeTrack(0);
+                playingUserIndex = (playingUserIndex + 1) % joinOrder.size();
+                return trackToPlay;
+            }
+            playingUserIndex = (playingUserIndex + 1) % joinOrder.size();
+        }
+        return null;
     }
 
     record UserTrack(Track track, int index, int userIndex, PartyUser partyUser) {}

@@ -72,6 +72,9 @@ public class PartySession {
     public List<AddedTrack> getPartyQueue() {
         return queue.getQueue();
     }
+    public Track pollTrack() {
+        return queue.pollTrack();
+    }
 
     public List<UserProfile> getPartyUsers() {
         List<UserProfile> users = new ArrayList<>(joinOrder.size());

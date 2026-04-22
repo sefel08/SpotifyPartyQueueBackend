@@ -10,10 +10,7 @@ import org.sfl.spotifybackendnew.Objects.Party.PartySession;
 import org.sfl.spotifybackendnew.Services.Spotify.SpotifyProxyService;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -91,6 +88,15 @@ public class PartyService {
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.getPartyQueue();
+    }
+    public Track pollTrackFromPartyQueue(String partyId, UserData user) {
+        PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
+                .orElseThrow(() -> new PartyNotFoundException(partyId));
+
+        // if user is not host, return null (only host can poll tracks to play)
+        if (!Objects.equals(party.getPartyId(), user.getSpotifyId())) return null;
+
+        return party.pollTrack();
     }
 
     public List<UserProfile> getPartyUsers(String partyId) {

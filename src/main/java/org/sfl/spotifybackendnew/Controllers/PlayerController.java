@@ -1,5 +1,6 @@
 package org.sfl.spotifybackendnew.Controllers;
 
+import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Services.Party.PartyService;
 import org.sfl.spotifybackendnew.Services.Security.SpotifyAuthorizedClientService;
@@ -27,12 +28,25 @@ public class PlayerController {
     }
 
 
-    public record DeviceRequest(String deviceId) {}
+    public record SetupRequest(String deviceId, String playlistUri) {}
+    public record PlayNextTrackRequest(String deviceId, String newTrackId) {}
 
-    @PostMapping
-    public void addNextTrack(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody DeviceRequest deviceRequest) {
+    @PostMapping("/setup")
+    public void setupPlayer(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody SetupRequest setupRequest) {
         if (!user.isHasHostPermissions() || !user.isPremium()) return;
         OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
-        spotifyPlayerService.addToQueue(authorizedClient, "spotify:track:4jctQonOQQ19Ln7Gx8FlvM", deviceRequest.deviceId);
+        spotifyPlayerService.setupPlayer(authorizedClient, setupRequest.deviceId, setupRequest.playlistUri);
+    }
+
+    @PostMapping("/playNext")
+    public void playNextTrack(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody PlayNextTrackRequest playNextTrackRequest) {
+        if (!user.isHasHostPermissions() || !user.isPremium()) return;
+
+        Track trackToPlay = partyService.pollTrackFromPartyQueue(user.getPartyId(), user);
+
+        if (trackToPlay == null) return;
+
+        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
+        spotifyPlayerService.playTrack(authorizedClient, trackToPlay.getUri(), playNextTrackRequest.deviceId);
     }
 }

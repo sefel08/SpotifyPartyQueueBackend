@@ -1,6 +1,6 @@
 package org.sfl.spotifybackendnew.Services.Spotify;
 
-import org.sfl.spotifybackendnew.DTOs.Music.Track;
+import jakarta.annotation.Nullable;
 import org.sfl.spotifybackendnew.Exceptions.SpotifyClientException;
 import org.sfl.spotifybackendnew.SpotifyDTOs.ResponseDTOs.SpotifyGetUserPlaylistsResponse;
 import org.sfl.spotifybackendnew.SpotifyDTOs.ResponseDTOs.SpotifySearchResponse;
@@ -11,12 +11,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -135,44 +135,61 @@ public class SpotifyClient {
             throw new SpotifyClientException("Failed to fetch track: " + e.getMessage(), e);
         }
     }
-
-    // player service
-    public void addTrackToQueue(String accessToken, String trackUri, String deviceId) {
+    public boolean isValidPlaylist(String playlistId) {
         try {
-            String url = BASE_URL + "/me/player/play?device_id=" + deviceId;
-
-            Map<String, String> body = new HashMap<>();
-            body.put("context_uri", "");
+            String url = "https://api.spotify.com/v1/playlists/" + playlistId + "?fields=id";
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(accessToken);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
-
-            restTemplate.exchange(
-                    url,
-                    HttpMethod.PUT,
-                    entity,
-                    Void.class
-            );
-        } catch (Exception e) {
-            throw new SpotifyClientException("Failed to add track to queue: " + e.getMessage(), e);
-        }
-        try {
-            String url = BASE_URL + "/me/player/queue?uri=" + trackUri + "&device_id=" + deviceId;
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(accessToken);
+            headers.setBearerAuth(spotifyTokenService.getApplicationToken());
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-            restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    Void.class
-            );
+            restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            return true;
+
+        } catch (HttpClientErrorException.NotFound e) {
+            return false; // 404 playlist does not exist
         } catch (Exception e) {
-            throw new SpotifyClientException("Failed to add track to queue: " + e.getMessage(), e);
+            throw new SpotifyClientException("Failed checking if playlist is valid: " + e.getMessage(), e);
         }
+    }
+
+    // player service
+    public void playTrack(String accessToken, String trackUri, String deviceId) {
+        try {
+            String url = BASE_URL + "/me/player/play?device_id=" + deviceId;
+            Map<String, Object> body = Map.of("uris", List.of(trackUri));
+            sendSpotifyPlayerRequest(accessToken, url, HttpMethod.PUT, body);
+        } catch (Exception e) {
+            throw new SpotifyClientException("Failed to play track: " + e.getMessage(), e);
+        }
+    }
+
+    //TODO fix initialization
+    public void initializePlayer(String accessToken, String deviceId, String playlistUri) {
+        try {
+            // reset context
+            String url = BASE_URL + "/me/player/play?device_id=" + deviceId;
+            sendSpotifyPlayerRequest(accessToken, url, HttpMethod.PUT, Map.of("uris", List.of("spotify:track:02VX51QXZlZcubvkm5mQGg")));
+        } catch (Exception e) {
+            throw new SpotifyClientException("Failed to initialize player: " + e.getMessage(), e);
+        }
+    }
+
+    private void sendSpotifyPlayerRequest(String accessToken, String url, HttpMethod method, @Nullable Map<String, Object> body) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> entity;
+        if (body != null)
+            entity = new HttpEntity<>(body, headers);
+        else entity = new HttpEntity<>(headers);
+
+        restTemplate.exchange(
+                url,
+                method,
+                entity,
+                Void.class
+        );
     }
 }
