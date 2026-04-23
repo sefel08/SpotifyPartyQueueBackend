@@ -5,6 +5,8 @@ import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Services.Party.PartyService;
 import org.sfl.spotifybackendnew.Services.Security.SpotifyAuthorizedClientService;
 import org.sfl.spotifybackendnew.Services.Spotify.SpotifyPlayerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -13,10 +15,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Objects;
+
 @RestController
 @RequestMapping("/api/player")
 public class PlayerController {
 
+    private static final Logger log = LoggerFactory.getLogger(PlayerController.class);
     private final PartyService partyService;
     private final SpotifyPlayerService spotifyPlayerService;
     private final SpotifyAuthorizedClientService spotifyAuthorizedClientService;
@@ -28,25 +33,26 @@ public class PlayerController {
     }
 
 
-    public record SetupRequest(String deviceId, String playlistUri) {}
-    public record PlayNextTrackRequest(String deviceId, String newTrackId) {}
+    public record SetupRequest(String deviceId) {}
 
     @PostMapping("/setup")
     public void setupPlayer(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody SetupRequest setupRequest) {
-        if (!user.isHasHostPermissions() || !user.isPremium()) return;
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
-        spotifyPlayerService.setupPlayer(authorizedClient, setupRequest.deviceId, setupRequest.playlistUri);
+        try {
+            if (!user.isHasHostPermissions() || !user.isPremium()) return;
+            OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
+            partyService.initializePartyPlayer(user, authentication, setupRequest.deviceId, spotifyAuthorizedClientService, spotifyPlayerService);
+//            spotifyPlayerService.setupPlayer(authorizedClient, setupRequest.deviceId);
+//            Thread.sleep(1500); // wait for player to initialize
+        } catch (Exception e) {
+            log.error("Error setting up player for user {}: {}", user.getUserId(), e.getMessage());
+        }
     }
 
     @PostMapping("/playNext")
-    public void playNextTrack(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody PlayNextTrackRequest playNextTrackRequest) {
+    public void playNextTrack(@AuthenticationPrincipal UserData user) {
         if (!user.isHasHostPermissions() || !user.isPremium()) return;
-
-        Track trackToPlay = partyService.pollTrackFromPartyQueue(user.getPartyId(), user);
-
-        if (trackToPlay == null) return;
-
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
-        spotifyPlayerService.playTrack(authorizedClient, trackToPlay.getUri(), playNextTrackRequest.deviceId);
+        // only for party owner (party player)
+        if (!Objects.equals(user.getPartyId(), user.getSpotifyId())) return;
+        partyService.playNextTrack(user.getPartyId());
     }
 }

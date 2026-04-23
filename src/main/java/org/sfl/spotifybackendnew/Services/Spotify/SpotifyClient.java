@@ -164,12 +164,10 @@ public class SpotifyClient {
         }
     }
 
-    //TODO fix initialization
-    public void initializePlayer(String accessToken, String deviceId, String playlistUri) {
+    public void initializePlayer(String accessToken, String deviceId) {
         try {
-            // reset context
             String url = BASE_URL + "/me/player/play?device_id=" + deviceId;
-            sendSpotifyPlayerRequest(accessToken, url, HttpMethod.PUT, Map.of("uris", List.of("spotify:track:02VX51QXZlZcubvkm5mQGg")));
+            sendSpotifyPlayerRequest(accessToken, url, HttpMethod.PUT, Map.of("uris", List.of("spotify:track:5V3b2UB9tCAHuqXj2b2EP7")));
         } catch (Exception e) {
             throw new SpotifyClientException("Failed to initialize player: " + e.getMessage(), e);
         }

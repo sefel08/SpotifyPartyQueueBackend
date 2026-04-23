@@ -6,8 +6,12 @@ import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.DTOs.User.UserProfile;
 import org.sfl.spotifybackendnew.Exceptions.PartyNotFoundException;
+import org.sfl.spotifybackendnew.Objects.Party.PartyPlayer;
 import org.sfl.spotifybackendnew.Objects.Party.PartySession;
+import org.sfl.spotifybackendnew.Services.Security.SpotifyAuthorizedClientService;
+import org.sfl.spotifybackendnew.Services.Spotify.SpotifyPlayerService;
 import org.sfl.spotifybackendnew.Services.Spotify.SpotifyProxyService;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -50,6 +54,27 @@ public class PartyService {
         party.removeUser(userId);
     }
 
+    public void initializePartyPlayer(UserData user, Authentication authentication, String deviceId, SpotifyAuthorizedClientService spotifyAuthorizedClientService, SpotifyPlayerService spotifyPlayerService) {
+        PartySession party = Optional.ofNullable(partySessionMap.get(user.getPartyId()))
+                .orElseThrow(() -> new PartyNotFoundException(user.getPartyId()));
+
+        PartyPlayer player = new PartyPlayer(
+                deviceId,
+                user,
+                authentication,
+                spotifyAuthorizedClientService,
+                spotifyPlayerService
+        );
+
+        log.info("Initializing party player for user {} in party {}", user.getUserId(), user.getPartyId());
+        party.initializePlayer(player);
+    }
+    public void playNextTrack(String partyId) {
+        PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
+                .orElseThrow(() -> new PartyNotFoundException(partyId));
+        party.playNext();
+    }
+
     public void addToUserQueue(String partyId, UUID userId, String trackId) {
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
@@ -89,16 +114,6 @@ public class PartyService {
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.getPartyQueue();
     }
-    public Track pollTrackFromPartyQueue(String partyId, UserData user) {
-        PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
-                .orElseThrow(() -> new PartyNotFoundException(partyId));
-
-        // if user is not host, return null (only host can poll tracks to play)
-        if (!Objects.equals(party.getPartyId(), user.getSpotifyId())) return null;
-
-        return party.pollTrack();
-    }
-
     public List<UserProfile> getPartyUsers(String partyId) {
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));

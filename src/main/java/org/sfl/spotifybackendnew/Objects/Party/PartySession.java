@@ -24,6 +24,7 @@ public class PartySession {
     private final CopyOnWriteArrayList<UUID> joinOrder = new CopyOnWriteArrayList<>();
 
     private final SmartQueue queue = new SmartQueue(userMap, joinOrder);
+    private PartyPlayer partyPlayer;
 
     public PartySession(String partyId) {
         this.partyId = partyId;
@@ -48,6 +49,16 @@ public class PartySession {
             log.info("Current users in party {}: {} ({})", partyId, userMap.keySet(), userMap.size());
         }
     }
+    public void initializePlayer(PartyPlayer player) {
+        player.setPartyQueue(queue);
+        partyPlayer = player;
+    }
+
+    public void playNext() {
+        PartyPlayer player = this.partyPlayer; // thread safe read
+        if (partyPlayer == null) return;
+        partyPlayer.playNextTrack();
+    }
 
     public List<Track> getUserQueue(UUID userId) {
         PartyUser user = getPartyUser(userId);
@@ -59,7 +70,12 @@ public class PartySession {
     public void addToUserQueue(UUID userId, Track track) {
         PartyUser user = getPartyUser(userId);
         if (user != null) {
-            user.addTrack(track);
+            synchronized (this) {
+                user.addTrack(track);
+                if (partyPlayer != null) {
+                    partyPlayer.notifyNewTrackAdded();
+                }
+            }
         }
     }
     public void removeFromUserQueue(UUID userId, int index) {
@@ -72,10 +88,6 @@ public class PartySession {
     public List<AddedTrack> getPartyQueue() {
         return queue.getQueue();
     }
-    public Track pollTrack() {
-        return queue.pollTrack();
-    }
-
     public List<UserProfile> getPartyUsers() {
         List<UserProfile> users = new ArrayList<>(joinOrder.size());
 
