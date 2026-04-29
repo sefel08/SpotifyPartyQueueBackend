@@ -25,6 +25,8 @@ public class PartyService {
 
     // (spotifyId - party) map
     private final Map<String, PartySession> partySessionMap = new ConcurrentHashMap<>();
+    // (deviceId - party) map
+    private final Map<String, PartySession> partyPlayerMap = new ConcurrentHashMap<>();
 
     public PartyService(SpotifyProxyService spotifyProxyService) {
         this.spotifyProxyService = spotifyProxyService;
@@ -68,6 +70,14 @@ public class PartyService {
 
         log.info("Initializing party player for user {} in party {}", user.getUserId(), user.getPartyId());
         party.initializePlayer(player);
+        partyPlayerMap.put(deviceId, party);
+    }
+    public void clearPlayer(String deviceId) {
+        PartySession party = Optional.ofNullable(partyPlayerMap.get(deviceId))
+                .orElseThrow(() -> new PartyNotFoundException(deviceId));
+        log.info("Clearing player for party {}", party.getPartyId());
+        party.clearPlayer();
+        partyPlayerMap.remove(deviceId);
     }
     public boolean playNextTrack(String partyId) {
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))

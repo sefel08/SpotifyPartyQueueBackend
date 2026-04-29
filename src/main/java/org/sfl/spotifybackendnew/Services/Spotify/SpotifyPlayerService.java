@@ -1,10 +1,12 @@
 package org.sfl.spotifybackendnew.Services.Spotify;
 
+import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.Exceptions.SpotifyClientException;
 import org.sfl.spotifybackendnew.Exceptions.SpotifyServiceException;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class SpotifyPlayerService {
 
@@ -25,7 +27,16 @@ public class SpotifyPlayerService {
         }
     }
 
-    public void playTrack(OAuth2AuthorizedClient authorizedClient, String uri, String deviceId) {
-        spotifyClient.playTrack(authorizedClient.getAccessToken().getTokenValue(), uri, deviceId);
+    public boolean playTrack(OAuth2AuthorizedClient authorizedClient, String uri, String deviceId) {
+        try {
+            spotifyClient.playTrack(authorizedClient.getAccessToken().getTokenValue(), uri, deviceId);
+            return true;
+        } catch (SpotifyClientException e) {
+            log.error("Spotify API error when playing next track [Device: {}]: {}", deviceId, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            log.error("Critical error in Spotify integration: {}", e.getMessage());
+            return false;
+        }
     }
 }

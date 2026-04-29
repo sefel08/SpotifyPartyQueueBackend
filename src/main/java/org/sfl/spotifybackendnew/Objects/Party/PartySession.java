@@ -53,6 +53,9 @@ public class PartySession {
         player.setPartyQueue(queue);
         partyPlayer = player;
     }
+    public void clearPlayer() {
+        partyPlayer = null;
+    }
 
     public boolean playNext() {
         PartyPlayer player = this.partyPlayer; // thread safe read

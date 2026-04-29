@@ -39,19 +39,29 @@ public class PartyPlayer {
     }
 
     public synchronized boolean playNextTrack() {
-        Track nextTrack = partyQueue.pollTrack();
+        Track nextTrack = partyQueue.peekTrack();
+
         // if party queue is empty
         if (nextTrack == null) {
             waitsForNewTrack.set(true);
             log.info("Party player in party {} is waiting for new track", playerUser.getPartyId());
             return false;
         }
-        spotifyPlayerService.playTrack(
+
+        boolean success = spotifyPlayerService.playTrack(
                 spotifyAuthorizedClientService.getAuthorizedClient(playerUser, playerAuthentication),
                 nextTrack.getUri(),
                 deviceId
         );
-        return true;
+
+        if (success) {
+            partyQueue.pollTrack();
+            waitsForNewTrack.set(false);
+            return true;
+        } else {
+            log.warn("Failed to play track for party {}. Player device might be offline.", playerUser.getPartyId());
+            return false;
+        }
     }
     public synchronized void notifyNewTrackAdded() {
         if (waitsForNewTrack.compareAndSet(true, false)) {

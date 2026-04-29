@@ -13,7 +13,9 @@ public class SmartQueue {
 
     private final Map<UUID, PartyUser> userMap;
     private final CopyOnWriteArrayList<UUID> joinOrder;
-    private int playingUserIndex = 0;
+
+    private UUID lastPlayingUserId = null;
+    private int lastPlayingIndex = 0;
 
     // only for displaying whole queue
     private final AtomicReference<List<AddedTrack>> cachedQueue = new AtomicReference<>(new ArrayList<>());
@@ -29,17 +31,50 @@ public class SmartQueue {
     }
 
     public Track pollTrack() {
-        for (int i = 0; i < joinOrder.size(); i++) {
-            PartyUser currentUser = userMap.get(joinOrder.get(playingUserIndex));
-            List<Track> currentUserQueue = currentUser.getQueue();
-            if (!currentUserQueue.isEmpty()) {
-                Track trackToPlay = currentUserQueue.getFirst();
-                currentUser.removeTrack(0);
-                playingUserIndex = (playingUserIndex + 1) % joinOrder.size();
-                return trackToPlay;
+        int size = joinOrder.size();
+        if (size == 0) return null;
+
+        int currentPlayingUserIndex = getCurrentPlayingUserIndex();
+
+        for (int i = 0; i < size; i++) {
+            UUID userId = joinOrder.get(currentPlayingUserIndex);
+            PartyUser currentUser = userMap.get(userId);
+
+            if (currentUser != null) {
+                List<Track> currentUserQueue = currentUser.getQueue();
+                if (!currentUserQueue.isEmpty()) {
+                    lastPlayingUserId = userId;
+                    lastPlayingIndex = currentPlayingUserIndex;
+                    return currentUser.removeTrack(0);
+                }
             }
-            playingUserIndex = (playingUserIndex + 1) % joinOrder.size();
+
+            currentPlayingUserIndex = (currentPlayingUserIndex + 1) % size;
         }
+
+        return null;
+    }
+    public Track peekTrack() {
+        int size = joinOrder.size();
+        if (size == 0) return null;
+
+        int currentPlayingUserIndex = getCurrentPlayingUserIndex();
+
+        int tempIndex = currentPlayingUserIndex;
+        for (int i = 0; i < size; i++) {
+            UUID userId = joinOrder.get(tempIndex);
+            PartyUser currentUser = userMap.get(userId);
+
+            if (currentUser != null) {
+                List<Track> currentUserQueue = currentUser.getQueue();
+                if (!currentUserQueue.isEmpty()) {
+                    return currentUserQueue.getFirst();
+                }
+            }
+
+            tempIndex = (tempIndex + 1) % size;
+        }
+
         return null;
     }
 
@@ -49,7 +84,7 @@ public class SmartQueue {
         List<UserTrack> allTracks = getAllUserTracks(currentOrder);
 
         // sort tracks by index and joinOrder
-        int currentPlayingUserIndex = playingUserIndex;
+        int currentPlayingUserIndex = getCurrentPlayingUserIndex();
         allTracks.sort(Comparator.comparingInt((UserTrack ut) -> ut.index)
                 .thenComparingInt(ut -> (ut.userIndex < currentPlayingUserIndex) ? currentPlayingUserIndex + ut.userIndex : ut.userIndex - currentPlayingUserIndex));
 
@@ -81,5 +116,19 @@ public class SmartQueue {
         }
 
         return allTracks;
+    }
+    private int getCurrentPlayingUserIndex() {
+        int size = joinOrder.size();
+        if (size == 0) return 0;
+        int currentPlayingUserIndex = 0;
+        if (lastPlayingUserId != null) {
+            int actualIndexInList = joinOrder.indexOf(lastPlayingUserId);
+            if (actualIndexInList != -1) {
+                currentPlayingUserIndex = (actualIndexInList + 1) % size;
+            } else {
+                currentPlayingUserIndex = lastPlayingIndex % size;
+            }
+        }
+        return currentPlayingUserIndex;
     }
 }
