@@ -3,6 +3,7 @@ package org.sfl.spotifybackendnew.Objects.Party;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.Music.Track;
+import org.sfl.spotifybackendnew.DTOs.Party.Message;
 import org.sfl.spotifybackendnew.DTOs.Party.PartySettings;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Enums.MessageType;
@@ -35,6 +36,7 @@ public class PartyPlayer {
     private final SpotifyPlayerService spotifyPlayerService;
     private final MessagingService messagingService;
     private final PartySession partySession;
+    private final String partyId;
 
     public PartyPlayer(
             String deviceId,
@@ -52,6 +54,7 @@ public class PartyPlayer {
         this.spotifyPlayerService = spotifyPlayerService;
         this.messagingService = messagingService;
         this.partySession = partySession;
+        this.partyId = partySession.getPartyId();
     }
 
     public synchronized boolean playNextTrack(boolean forceSkip) {
@@ -60,7 +63,7 @@ public class PartyPlayer {
         // if party queue is empty
         if (nextTrack == null) {
             waitsForNewTrack.set(true);
-            log.info("Party player in party {} is waiting for new track", playerUser.getPartyId());
+            log.info("Party player in party {} is waiting for new track", partyId);
 
             if (forceSkip) {
                 // play 1 second of silence
@@ -86,11 +89,13 @@ public class PartyPlayer {
 
         if (success) {
             partyQueue.pollTrack();
+            skipVotes.clear();
             waitsForNewTrack.set(false);
-            messagingService.sendUpdate(playerUser.getPartyId(), MessageType.PARTY_QUEUE_CHANGED);
+            messagingService.sendUpdate(partyId, MessageType.PARTY_QUEUE_CHANGED);
+            messagingService.sendUpdate(partyId, new Message(MessageType.SKIP_VOTES_CHANGED, skipVotes.size()));
             return true;
         } else {
-            log.warn("Failed to play track for party {}. Player device might be offline.", playerUser.getPartyId());
+            log.warn("Failed to play track for party {}. Player device might be offline.", partyId);
             return false;
         }
     }
@@ -100,30 +105,37 @@ public class PartyPlayer {
         }
     }
 
-    public synchronized boolean voteForSkip(UUID userId) {
+    public synchronized int voteForSkip(UUID userId) {
+        if (waitsForNewTrack.get()) return 0; // cannot skip if waiting for new track
+
         if (skipVotes.add(userId)) {
-            log.info("User {} voted to skip the current track in party {}", userId, playerUser.getPartyId());
+            log.info("User {} voted to skip the current track in party {}", userId, partyId);
         } else {
-            log.info("User {} has already voted to skip the current track in party {}", userId, playerUser.getPartyId());
+            log.info("User {} tried to skip but already has skipped in party {}", userId, partyId);
+            return 0;
         }
-        handleSkipping();
-        return true;
+
+        boolean skipped = handleSkipping();
+        messagingService.sendUpdate(partyId, new Message(MessageType.SKIP_VOTES_CHANGED, skipVotes.size()));
+        return skipped ? -1 : 1;
     }
-    public synchronized boolean cancelUserSkipVote(UUID userId) {
+    public synchronized int cancelUserSkipVote(UUID userId) {
         if (skipVotes.remove(userId)) {
-            log.info("User {} removed his vote to skip the current track in party {}", userId, playerUser.getPartyId());
+            log.info("User {} removed his vote to skip the current track in party {}", userId, partyId);
         } else {
-            log.info("User {} wanted to remove his vote but he has not voted for skip {}", userId, playerUser.getPartyId());
+            log.info("User {} wanted to remove his vote but has not voted for skip {}", userId, partyId);
+            return 0;
         }
-    return true;
+        messagingService.sendUpdate(partyId, new Message(MessageType.SKIP_VOTES_CHANGED, skipVotes.size()));
+        return 1;
     }
 
-    private void handleSkipping() {
+    private boolean handleSkipping() {
         int totalUsers = partySession.getTotalUsers();
         int voteCount = skipVotes.size();
         PartySettings settings = partySession.getPartySettings();
 
-        if (!settings.voteToSkip()) return;
+        if (!settings.voteToSkip()) return false;
 
         // if percent voting is enabled, calculate the threshold based on total users, otherwise use the fixed threshold
         boolean shouldSkip = voteCount > ((settings.percentVoting()) ? totalUsers * settings.voteThreshold() : settings.voteThreshold());
@@ -131,7 +143,10 @@ public class PartyPlayer {
         if (shouldSkip) {
             playNextTrack(true);
             skipVotes.clear();
-            log.info("Track skipped in party {} with {} skip votes out of {} users", playerUser.getPartyId(), voteCount, totalUsers);
+            log.info("Track skipped in party {} with {} skip votes out of {} users", partyId, voteCount, totalUsers);
+            return true;
         }
+
+        return false;
     }
 }

@@ -150,13 +150,13 @@ public class PartyService {
         return party.getPartyUsers();
     }
 
-    public boolean voteForSkip(String partyId, UUID userId) {
+    public int voteForSkip(String partyId, UUID userId) {
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.voteForSkip(userId);
     }
 
-    public boolean cancelUserSkipVote(String partyId, UUID userId) {
+    public int cancelUserSkipVote(String partyId, UUID userId) {
     PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
             .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.cancelUserSkipVote(userId);

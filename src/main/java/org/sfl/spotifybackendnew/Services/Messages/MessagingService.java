@@ -1,6 +1,7 @@
 package org.sfl.spotifybackendnew.Services.Messages;
 
 import lombok.RequiredArgsConstructor;
+import org.sfl.spotifybackendnew.DTOs.Party.Message;
 import org.sfl.spotifybackendnew.Enums.MessageType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,9 @@ public class MessagingService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void sendUpdate(String partyId, MessageType messageType) {
-        messagingTemplate.convertAndSend("/party/" + partyId, messageType);
+        messagingTemplate.convertAndSend("/party/" + partyId, new Message(messageType, null));
+    }
+    public void sendUpdate(String partyId, Message message) {
+        messagingTemplate.convertAndSend("/party/" + partyId, message);
     }
 }

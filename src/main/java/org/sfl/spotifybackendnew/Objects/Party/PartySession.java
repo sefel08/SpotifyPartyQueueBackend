@@ -122,14 +122,14 @@ public class PartySession {
         return users;
     }
 
-    public boolean voteForSkip(UUID userId) {
+    public int voteForSkip(UUID userId) {
         PartyPlayer player = this.partyPlayer; // thread safe read
-        if (player == null) return false;
+        if (player == null) return 0;
         return player.voteForSkip(userId);
     }
-    public boolean cancelUserSkipVote(UUID userId) {
+    public int cancelUserSkipVote(UUID userId) {
         PartyPlayer player = this.partyPlayer; // thread safe read
-        if (player == null) return false;
+        if (player == null) return 0;
         return player.cancelUserSkipVote(userId);
     }
     public int getTotalUsers() {
