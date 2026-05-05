@@ -35,19 +35,28 @@ public class PlayerController {
     public record DeviceIdRequest(String deviceId) {}
 
     @PostMapping("/setup")
-    public void setupPlayer(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody DeviceIdRequest deviceIdRequest) {
-        if (!user.isHasHostPermissions() || !user.isPremium()) return;
+    public ResponseEntity<?> setupPlayer(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody DeviceIdRequest deviceIdRequest) {
+        if (user.getPartyId() == null || !Objects.equals(user.getPartyId(), user.getSpotifyId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only party owner can setup player");
+        }
+        if (!user.isHasSpotifyPlayerPermissions() || !user.isPremium()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Missing player permissions or Premium account required");
+        }
         OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
         partyService.initializePartyPlayer(user, authentication, deviceIdRequest.deviceId, spotifyAuthorizedClientService, spotifyPlayerService);
+        return ResponseEntity.ok().build();
     }
     @PostMapping("/cleanup")
     public ResponseEntity<?> cleanupPlayer(@AuthenticationPrincipal UserData user) {
-        if (!Objects.equals(user.getPartyId(), user.getSpotifyId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only host can cleanup party player");
+        if (user.getPartyId() == null || !Objects.equals(user.getPartyId(), user.getSpotifyId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only party owner can setup player");
         }
 
         try {
-            partyService.clearPlayer(user.getPartyId());
+            partyService.clearPlayer(user, user.getPartyId());
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (PartyNotFoundException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Party connected with this device id does not exist");
@@ -57,14 +66,19 @@ public class PlayerController {
     record PlayNextResponse(boolean played, String message) {}
     @PostMapping("/playNext")
     public ResponseEntity<?> playNextTrack(@AuthenticationPrincipal UserData user) {
-        if (!user.isHasHostPermissions() || !user.isPremium()) {
+        if (!Objects.equals(user.getPartyId(), user.getSpotifyId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new PlayNextResponse(false, "You are not the owner of this party"));
+        }
+
+        if (!user.isHasSpotifyPlayerPermissions() || !user.isPremium()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new PlayNextResponse(false, "Missing Host permissions or Premium account"));
         }
 
-        if (!Objects.equals(user.getPartyId(), user.getSpotifyId())) {
+        if (user.getPartyId() == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new PlayNextResponse(false, "You are not the owner of this party"));
+                    .body("You must be in a party to play next track");
         }
 
         boolean played = partyService.playNextTrack(user.getPartyId());

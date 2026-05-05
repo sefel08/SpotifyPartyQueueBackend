@@ -5,4 +5,5 @@ public enum MessageType {
     PARTY_USERS_CHANGED,
     USER_QUEUE_CHANGED,
     SKIP_VOTES_CHANGED,
+    REFRESH_STATUS,
 }

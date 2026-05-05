@@ -2,6 +2,8 @@ package org.sfl.spotifybackendnew.Services.User;
 
 import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
+import org.sfl.spotifybackendnew.Enums.MessageType;
+import org.sfl.spotifybackendnew.Services.Messages.MessagingService;
 import org.sfl.spotifybackendnew.Services.Party.PartyService;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.core.Authentication;
@@ -14,9 +16,11 @@ import org.springframework.stereotype.Component;
 public class SessionComponent {
 
     private final PartyService partyService;
+    private final MessagingService messagingService;
 
-    public SessionComponent(PartyService partyService) {
+    public SessionComponent(PartyService partyService, MessagingService messagingService) {
         this.partyService = partyService;
+        this.messagingService = messagingService;
     }
 
     @EventListener
@@ -27,8 +31,14 @@ public class SessionComponent {
             if (auth != null && auth.getPrincipal() instanceof UserData user) {
                 log.info("Session of user {} timed out. Removing from party: {}", user.getDisplayName(), user.getPartyId() != null ? user.getPartyId() : "None");
 
-                if (user.getPartyId() != null)
+                if (user.getPartyId() != null) {
                     partyService.removeUserFromParty(user.getPartyId(), user.getUserId());
+                    user.setPartyId(null);
+                    user.setUser(false);
+                    user.setPlayer(false);
+                    user.setHost(false);
+                    messagingService.sendPrivateUpdate(user.getUserId(), MessageType.REFRESH_STATUS);
+                }
             }
         }
     }

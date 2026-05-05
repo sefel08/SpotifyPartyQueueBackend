@@ -6,7 +6,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,7 +26,7 @@ public class SpotifyAuthorizedClientService {
             return null;
         }
 
-        String registrationId = user.isHasHostPermissions() ? "spotify-host" : "spotify";
+        String registrationId = user.isHasSpotifyPlayerPermissions() ? "spotify-host" : "spotify";
         OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
                 .withClientRegistrationId(registrationId)
                 .principal(authentication)

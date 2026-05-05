@@ -11,6 +11,7 @@ import org.sfl.spotifybackendnew.SpotifyDTOs.SubDTOs.SpotifyImage;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,10 +26,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -45,8 +43,6 @@ public class UserSessionService {
     }
 
     public void initializeSessionForGuest(HttpServletRequest request, HttpServletResponse response, String displayName) {
-        HttpSession session = request.getSession(true);
-
         UserData userData = new UserData(
                 UUID.randomUUID(),
                 displayName,
@@ -72,10 +68,9 @@ public class UserSessionService {
         HttpSessionSecurityContextRepository repo = new HttpSessionSecurityContextRepository();
         repo.saveContext(context, request, response);
 
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
         log.info("Initialized session for guest user {} with id: {}", displayName, userData.getUserId());
     }
-    public void initializeSessionAfterSpotifyLogin(Authentication authentication, HttpServletRequest request, HttpServletResponse response, UUID oldUserId, String oldPartyId) {
+    public void initializeSessionAfterSpotifyLogin(Authentication authentication, HttpServletRequest request, HttpServletResponse response, UserData oldUser) {
         if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User oauthUser)) {
             log.error("Failed to initialize session after Spotify login: authentication principal is not an OAuth2User");
             return;
@@ -83,8 +78,15 @@ public class UserSessionService {
 
         boolean isPremium =  Objects.equals(oauthUser.getAttribute("product"), "premium");
 
-        boolean hasHostPermissions = oauthUser.getAuthorities().stream()
-                .anyMatch(a -> Objects.equals(a.getAuthority(), "SCOPE_streaming"));
+        Set<String> userScopes = oauthUser.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(java.util.stream.Collectors.toSet());
+        boolean hasSpotifyPlayerPermissions = userScopes.containsAll(java.util.Set.of(
+                "SCOPE_streaming",
+                "SCOPE_user-read-email",
+                "SCOPE_user-modify-playback-state",
+                "SCOPE_user-read-playback-state"
+        ));
 
         // get profile picture for session
         Object rawImages = oauthUser.getAttribute("images");
@@ -106,25 +108,42 @@ public class UserSessionService {
                 .orElse(imageUrl);
 
         // create new user session object
-        UserData userData = new UserData(
-                (oldUserId == null) ? UUID.randomUUID() : oldUserId,
-                oauthUser.getAttribute("display_name"),
-                oldPartyId,
-                true,
-                isPremium,
-                hasHostPermissions,
-                oauthUser.getName(),
-                imageUrl,
-                smallImageUrl
-        );
+        UserData userData = null;
+        if (oldUser != null) {
+            userData = new UserData(
+                    oldUser.getUserId(),
+                    oauthUser.getAttribute("display_name"),
+                    oldUser.getPartyId(),
+                    true,
+                    isPremium,
+                    hasSpotifyPlayerPermissions,
+                    oauthUser.getName(),
+                    imageUrl,
+                    smallImageUrl
+            );
+            userData.setUser(oldUser.isUser());
+            userData.setPlayer(oldUser.isPlayer());
+            userData.setHost(oldUser.isHost());
+            // if user was in party update his profile
+            if (oldUser.getPartyId() != null) {
+                log.info("User with id {} was in party and logged in via spotify, updating party session with new spotify authenticated profile", userData.getUserId());
+                partyService.updateUserProfile(oldUser.getPartyId(), userData);
+            }
+        } else {
+            userData = new UserData(
+                    UUID.randomUUID(),
+                    oauthUser.getAttribute("display_name"),
+                    null,
+                    true,
+                    isPremium,
+                    hasSpotifyPlayerPermissions,
+                    oauthUser.getName(),
+                    imageUrl,
+                    smallImageUrl
+            );
+        }
 
         log.info("Initialized session for Spotify user: {}, spotifyId: {} with id: {}", userData.getDisplayName(), userData.getSpotifyId(), userData.getUserId());
-
-        // if user was in party update his profile
-        if (oldUserId != null && oldPartyId != null) {
-            log.info("User with id {} was in party and logged in via spotify, updating party session with new spotify authenticated profile", userData.getUserId());
-            partyService.updateUserProfile(oldPartyId, userData);
-        }
 
         // register new session object
         UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(

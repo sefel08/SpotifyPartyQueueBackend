@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import org.sfl.spotifybackendnew.DTOs.Music.Track;
+import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.DTOs.User.UserProfile;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Data
 public class PartyUser {
     private final UUID id;
+    private UserData userSession;
 
     // display info
     private UserProfile profile;
@@ -20,9 +22,10 @@ public class PartyUser {
     @Getter(AccessLevel.NONE)
     private final List<Track> queue = new ArrayList<>();
 
-    public PartyUser(UUID userId, UserProfile profile) {
+    public PartyUser(UUID userId, UserProfile profile, UserData userSession) {
         id = userId;
         this.profile = profile;
+        this.userSession = userSession;
     }
 
     public synchronized void addTrack(Track track) {

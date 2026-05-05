@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.Music.AddedTrack;
 import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.DTOs.Party.PartySettings;
+import org.sfl.spotifybackendnew.DTOs.Party.SimpleResponse;
+import org.sfl.spotifybackendnew.DTOs.User.SafeUserProfile;
 import org.sfl.spotifybackendnew.DTOs.User.UserProfile;
 import org.sfl.spotifybackendnew.Exceptions.PartyNotFoundException;
 import org.sfl.spotifybackendnew.Services.Party.PartyService;
@@ -28,19 +30,20 @@ public class PartyController {
 
     @GetMapping("/status")
     public Map<String, Object> checkPartyStatus(@AuthenticationPrincipal UserData user) {
-        boolean inParty = user.getPartyId() != null;
         String partyId = user.getPartyId();
+        boolean inParty = partyId != null;
 
-        if (inParty) {
-            return Map.of(
-                    "inParty", inParty,
-                    "partyId", partyId,
-                    "isHost", Objects.equals(user.getSpotifyId(), partyId)
-            );
+        if (!inParty) {
+            return Map.of("inParty", false);
         }
 
-        return Map.of("inParty", inParty);
+        return Map.of(
+                "inParty", true,
+                "partyId", partyId
+        );
     }
+
+    public record JoinPartyRequest(boolean asParticipant, boolean asPlayer, boolean asHost) {}
 
     @PostMapping
     public String createParty(@AuthenticationPrincipal UserData user, @RequestBody PartySettings partySettings) {
@@ -48,8 +51,10 @@ public class PartyController {
         return user.getSpotifyId();
     }
     @PostMapping("/join")
-    public void joinParty(@AuthenticationPrincipal UserData user, @RequestParam String partyId) {
-        partyService.joinParty(partyId, user);
+    public SimpleResponse joinParty(@AuthenticationPrincipal UserData user, @RequestParam String partyId, @RequestBody JoinPartyRequest joinPartyRequest) {
+        if (partyId == null)
+            return new SimpleResponse(false, "Party ID is required");
+        return partyService.joinParty(partyId, user, joinPartyRequest.asParticipant, joinPartyRequest.asPlayer, joinPartyRequest.asHost);
     }
 
     public record AddTrackRequest(String trackId) {}
@@ -86,7 +91,7 @@ public class PartyController {
     }
 
     @GetMapping("/users")
-    public List<UserProfile> getPartyUsers(@AuthenticationPrincipal UserData user) {
+    public List<SafeUserProfile> getPartyUsers(@AuthenticationPrincipal UserData user) {
         if (user.getPartyId() == null) {
             return List.of();
         }

@@ -24,7 +24,7 @@ public class AuthController {
 
 
     @GetMapping("/status")
-    public Map<String, Object> checkStatus(@AuthenticationPrincipal UserData user, Authentication authentication) {
+    public Map<String, Object> checkStatus(@AuthenticationPrincipal UserData user) {
         // doesn't have session created
         if (user == null) {
             return Map.of("isLoggedIn", false);
@@ -34,21 +34,31 @@ public class AuthController {
         status.put("isLoggedIn", true);
         status.put("isSpotifyAuthenticated", user.isSpotifyAuthenticated());
         status.put("isPremium", user.isPremium());
-        status.put("hasHostPermissions", user.isHasHostPermissions());
+        status.put("hasHostPermissions", user.isHasSpotifyPlayerPermissions());
         status.put("displayName", user.getDisplayName());
         status.put("imageUrl", user.getImageUrl());
         status.put("smallImageUrl", user.getSmallImageUrl());
+        status.put("isUser", user.isUser());
+        status.put("isPlayer", user.isPlayer());
+        status.put("isHost", user.isHost());
+
+        return status;
+    }
+
+    @GetMapping("/spotify-token")
+    public Map<String, Object> getSpotifyToken(@AuthenticationPrincipal UserData user, Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
 
         OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
         String spotifyUserToken = null;
         if (authorizedClient != null) {
             spotifyUserToken = authorizedClient.getAccessToken().getTokenValue();
         } else if (user.isSpotifyAuthenticated()) {
-            // user should have token but has nott, probably session expired or something, needs to reauthenticate
-            status.put("needsReauth", true);
+            // user should have token but has not, probably session expired or something, needs to reauthenticate
+            response.put("needsReauth", true);
         }
-        status.put("spotifyUserToken", spotifyUserToken);
+        response.put("spotifyUserToken", spotifyUserToken);
 
-        return status;
+        return response;
     }
 }

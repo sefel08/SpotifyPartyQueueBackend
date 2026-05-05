@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.Music.AddedTrack;
 import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.DTOs.Party.PartySettings;
+import org.sfl.spotifybackendnew.DTOs.Party.SimpleResponse;
+import org.sfl.spotifybackendnew.DTOs.User.SafeUserProfile;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.DTOs.User.UserProfile;
 import org.sfl.spotifybackendnew.Enums.MessageType;
@@ -44,33 +46,72 @@ public class PartyService {
         log.info("Settings used for creation this party: voteToSkip {}, percentVoting {}, voteThreshold {}", partySettings.voteToSkip(), partySettings.percentVoting(), partySettings.voteThreshold());
 
         //create new party for user
-        PartySession party = new PartySession(spotifyUserId, partySettings);
+        PartySession party = new PartySession(spotifyUserId, partySettings, messagingService);
         partySessionMap.put(spotifyUserId, party);
     }
 
-    public void joinParty(String partyId, UserData user) {
+    public SimpleResponse joinParty(String partyId, UserData user, boolean asParticipant, boolean asPlayer, boolean asHost) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
 
-        UserProfile profile = new UserProfile(user.getDisplayName(), user.isSpotifyAuthenticated(), user.getSpotifyId(), user.getImageUrl(), user.getSmallImageUrl());
-        party.addUser(user.getUserId(), profile);
+        boolean isOwner = Objects.equals(party.getPartyId(), user.getSpotifyId());
+
+        user.setUser(false);
+        user.setPlayer(false);
+        user.setHost(false);
+
+        if (asPlayer) {
+            if (isOwner)
+                user.setPlayer(true);
+            else
+                return new SimpleResponse(false, "Only party owner can join as player");
+        }
+        if (asHost) {
+            if (isOwner)
+                user.setHost(true);
+            else
+                return new SimpleResponse(false, "Only party owner can join as host");
+        }
+
+        if (asParticipant) {
+            if (party.isUserInParty(user.getUserId())) {
+                log.warn("User {} is already in party with id {}, skipping join", user.getUserId(), partyId);
+                user.setUser(true); // error prevention
+            } else {
+                user.setUser(true);
+                UserProfile profile = new UserProfile(user.getDisplayName(), user.isSpotifyAuthenticated(), user.getSpotifyId(), user.getImageUrl(), user.getSmallImageUrl());
+                party.addUser(profile, user);
+                messagingService.sendUpdate(partyId, MessageType.PARTY_USERS_CHANGED);
+            }
+        }
+
+        // mark that this session is connected with this party
         user.setPartyId(partyId);
+        return new SimpleResponse(true, "Joined party successfully");
     }
 
     public void removeUserFromParty(String partyId, UUID userId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
-        party.removeUser(userId);
+
+        if (party.isUserInParty(userId)) {
+            party.removeUser(userId);
+            messagingService.sendUpdate(partyId, MessageType.PARTY_USERS_CHANGED);
+        }
     }
 
     public void updateUserProfile(String partyId, UserData user) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         UserProfile profile = new UserProfile(user.getDisplayName(), user.isSpotifyAuthenticated(), user.getSpotifyId(), user.getImageUrl(), user.getSmallImageUrl());
-        party.updateUser(user.getUserId(), profile);
+        party.updateUser(user.getUserId(), profile, user);
     }
 
     public void initializePartyPlayer(UserData user, Authentication authentication, String deviceId, SpotifyAuthorizedClientService spotifyAuthorizedClientService, SpotifyPlayerService spotifyPlayerService) {
+        validatePartyId(user.getPartyId());
         PartySession party = Optional.ofNullable(partySessionMap.get(user.getPartyId()))
                 .orElseThrow(() -> new PartyNotFoundException(user.getPartyId()));
 
@@ -88,7 +129,8 @@ public class PartyService {
         party.initializePlayer(player);
     }
 
-    public void clearPlayer(String partyId) {
+    public void clearPlayer(UserData user, String partyId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         log.info("Clearing player for party {}", partyId);
@@ -96,12 +138,14 @@ public class PartyService {
     }
 
     public boolean playNextTrack(String partyId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.playNext();
     }
 
     public void addToUserQueue(String partyId, UUID userId, String trackId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
 
@@ -124,12 +168,14 @@ public class PartyService {
     }
 
     public List<Track> getUserQueue(String partyId, UUID userId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.getUserQueue(userId);
     }
 
     public void removeFromUserQueue(String partyId, UUID userId, int index) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
 
@@ -139,26 +185,45 @@ public class PartyService {
     }
 
     public List<AddedTrack> getPartyQueue(String partyId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.getPartyQueue();
     }
 
-    public List<UserProfile> getPartyUsers(String partyId) {
+    public List<SafeUserProfile> getPartyUsers(String partyId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
-        return party.getPartyUsers();
+        return party.getPartyUsers()
+                .stream()
+                .map(user -> new SafeUserProfile(
+                        user.displayName(),
+                        user.spotifyAuthorized(),
+                        user.profileImageUrl(),
+                        user.smallProfileImageUrl()))
+                .toList();
     }
 
     public int voteForSkip(String partyId, UUID userId) {
+        validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.voteForSkip(userId);
     }
 
     public int cancelUserSkipVote(String partyId, UUID userId) {
-    PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
+        validatePartyId(partyId);
+        PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
             .orElseThrow(() -> new PartyNotFoundException(partyId));
         return party.cancelUserSkipVote(userId);
+    }
+
+
+    private void validatePartyId(String partyId) {
+        if (partyId == null) {
+            log.error("Tried to invoke method in partyService with partyId == null");
+            throw new IllegalStateException("Party ID cannot be null");
+        }
     }
 }

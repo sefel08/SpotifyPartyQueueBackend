@@ -3,6 +3,7 @@ package org.sfl.spotifybackendnew.Configs;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
+import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Services.User.UserSessionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
@@ -53,13 +55,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
 
                     //logging in and status
-                    .requestMatchers("/login/**", "/oauth2/**", "/api/user/login-as-guest", "/api/status").permitAll()
+                    .requestMatchers("/login/**", "/oauth2/**", "/api/user/login-as-guest", "/api/user/save-return-url", "/api/status").permitAll()
                     //fetching spotify account related data, only for spotify authenticated users
                     .requestMatchers("/api/spotify/user-playlists").hasRole("SPOTIFY_USER")
                     //creating party only for spotify authenticated users
                     .requestMatchers("/api/party/create").hasRole("SPOTIFY_USER")
                     //player endpoints only for spotify authenticated users
-                    .requestMatchers("/api/player/**").hasRole("SPOTIFY_USER")
+                    .requestMatchers("/api/player/**", "/api/spotify-token").hasRole("SPOTIFY_USER")
 
                     .anyRequest().authenticated()
             )
@@ -94,19 +96,15 @@ public class SecurityConfig {
     @Bean
     public AuthenticationSuccessHandler customSuccessHandler() {
         return (request, response, authentication) -> {
-
             HttpSession session = request.getSession(false);
-            UUID oldGuestId = null;
-            String oldPartyId = null;
+            UserData oldUser = null;
 
             if (session != null) {
-                oldGuestId = (UUID) session.getAttribute("ORIGINAL_GUEST_ID");
-                oldPartyId = (String) session.getAttribute("ORIGINAL_PARTY_ID");
-                session.removeAttribute("ORIGINAL_GUEST_ID");
-                session.removeAttribute("ORIGINAL_PARTY_ID");
+                oldUser = (UserData) session.getAttribute("OLD_USER");
+                session.invalidate();
             }
 
-            userSessionService.initializeSessionAfterSpotifyLogin(authentication, request, response, oldGuestId, oldPartyId);
+            userSessionService.initializeSessionAfterSpotifyLogin(authentication, request, response, oldUser);
             response.sendRedirect("http://127.0.0.1:5173");
         };
     }
