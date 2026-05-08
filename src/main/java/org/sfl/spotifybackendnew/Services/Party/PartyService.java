@@ -125,7 +125,7 @@ public class PartyService {
                 party
         );
 
-        log.info("Initializing party player for user {} in party {}", user.getUserId(), user.getPartyId());
+        log.info("Initializing party player for user {} in party {} with deviceId: {}", user.getUserId(), user.getPartyId(), deviceId);
         party.initializePlayer(player);
     }
 

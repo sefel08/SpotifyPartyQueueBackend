@@ -26,7 +26,6 @@ public class SpotifyPlayerService {
             System.err.println("Unexpected error: " + e.getMessage());
         }
     }
-
     public boolean playTrack(OAuth2AuthorizedClient authorizedClient, String uri, String deviceId) {
         try {
             spotifyClient.playTrack(authorizedClient.getAccessToken().getTokenValue(), uri, deviceId);

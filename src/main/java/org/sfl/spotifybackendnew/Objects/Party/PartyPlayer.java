@@ -55,6 +55,12 @@ public class PartyPlayer {
         this.messagingService = messagingService;
         this.partySession = partySession;
         this.partyId = partySession.getPartyId();
+
+        // transfer playback to the new player device
+//        spotifyPlayerService.setupPlayer(
+//                spotifyAuthorizedClientService.getAuthorizedClient(playerUser, playerAuthentication),
+//                deviceId
+//        );
     }
 
     public synchronized boolean playNextTrack(boolean forceSkip) {

@@ -46,6 +46,7 @@ public class PlayerController {
         }
         OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
         partyService.initializePartyPlayer(user, authentication, deviceIdRequest.deviceId, spotifyAuthorizedClientService, spotifyPlayerService);
+
         return ResponseEntity.ok().build();
     }
     @PostMapping("/cleanup")
