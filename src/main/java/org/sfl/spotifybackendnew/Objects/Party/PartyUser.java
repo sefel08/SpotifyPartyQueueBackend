@@ -27,6 +27,12 @@ public class PartyUser {
         this.profile = profile;
         this.userSession = userSession;
     }
+    public PartyUser(UUID userId, UserProfile profile, UserData userSession,  List<Track> queue) {
+        id = userId;
+        this.profile = profile;
+        this.userSession = userSession;
+        this.queue.addAll(queue);
+    }
 
     public synchronized void addTrack(Track track) {
         queue.add(track);

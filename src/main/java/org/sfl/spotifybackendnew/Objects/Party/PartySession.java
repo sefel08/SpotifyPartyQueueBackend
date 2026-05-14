@@ -45,8 +45,12 @@ public class PartySession {
                 log.info("User {} is already in party with id {}, skipping add", userId, partyId);
                 return;
             }
-            deleteDuplicateUser(profile, userId);
-            PartyUser partyUser = new PartyUser(userId, profile, user);
+            List<Track> oldUserQueue = deleteDuplicateUser(profile, userId);
+            PartyUser partyUser;
+            if (oldUserQueue != null)
+                partyUser = new PartyUser(userId, profile, user, oldUserQueue);
+            else
+                partyUser = new PartyUser(userId, profile, user);
             userMap.put(userId, partyUser);
             joinOrder.add(userId);
             log.info("Adding user {} to party with id {}", userId, partyId);
@@ -55,6 +59,10 @@ public class PartySession {
     }
     public void removeUser(UUID userId) {
         synchronized (userMapLock) {
+            if (partyPlayer.getPlayerId().equals(userId)) {
+                log.info("Player {} left the party, clearing player", userId);
+                clearPlayer();
+            }
             userMap.remove(userId);
             joinOrder.remove(userId);
             log.info("Removed user {} from party with id {}", userId, partyId);
@@ -79,6 +87,13 @@ public class PartySession {
     }
 
     public void initializePlayer(PartyPlayer player) {
+        //check if player is already initialized, if so clear it first
+        if (partyPlayer != null) {
+            log.info("Player already initialized for party {}, clearing existing player before initializing new one", partyId);
+            partyPlayer.decouplePlayerSession();
+            clearPlayer();
+        }
+
         player.setPartyQueue(queue);
         partyPlayer = player;
     }
@@ -152,12 +167,13 @@ public class PartySession {
     private PartyUser getPartyUser(UUID userId) {
         return userMap.get(userId);
     }
-    private void deleteDuplicateUser(UserProfile profile, UUID validUserId) {
+    private List<Track> deleteDuplicateUser(UserProfile profile, UUID validUserId) {
         if (profile.spotifyAuthorized()) {
             for (PartyUser user : userMap.values()) {
                 if (user.getId() == validUserId) continue;
                 UserProfile userProfile = user.getProfile();
                 if (userProfile.spotifyAuthorized() && Objects.equals(userProfile.spotifyId(), profile.spotifyId())) {
+                    List<Track> oldQueue = user.getQueue();
                     removeUser(user.getId());
                     UserData userSession = user.getUserSession();
                     userSession.setPartyId(null);
@@ -166,9 +182,10 @@ public class PartySession {
                     userSession.setHost(false);
                     messagingService.sendPrivateUpdate(user.getId(), MessageType.REFRESH_STATUS);
                     log.info("Removed duplicate spotify user");
-                    break;
+                    return oldQueue;
                 }
             }
         }
+        return null;
     }
 }

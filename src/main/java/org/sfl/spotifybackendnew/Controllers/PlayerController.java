@@ -53,7 +53,7 @@ public class PlayerController {
     public ResponseEntity<?> cleanupPlayer(@AuthenticationPrincipal UserData user) {
         if (user.getPartyId() == null || !Objects.equals(user.getPartyId(), user.getSpotifyId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Only party owner can setup player");
+                    .body("Only party owner can cleanup player");
         }
 
         try {

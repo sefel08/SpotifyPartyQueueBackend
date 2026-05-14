@@ -78,6 +78,12 @@ public class UserData implements UserDetails {
         this.isHost = other.isHost;
     }
 
+    public void clearRoles() {
+        isPlayer = false;
+        isUser = false;
+        isHost = false;
+    }
+
     @Override
     public int hashCode() {
         return isPlayer ? Objects.hash(spotifyId) : Objects.hash(userId);

@@ -34,9 +34,7 @@ public class SessionComponent {
                 if (user.getPartyId() != null) {
                     partyService.removeUserFromParty(user.getPartyId(), user.getUserId());
                     user.setPartyId(null);
-                    user.setUser(false);
-                    user.setPlayer(false);
-                    user.setHost(false);
+                    user.clearRoles();
                     messagingService.sendPrivateUpdate(user.getUserId(), MessageType.REFRESH_STATUS);
                 }
             }

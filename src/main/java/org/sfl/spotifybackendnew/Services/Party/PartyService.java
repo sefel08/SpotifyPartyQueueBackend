@@ -57,9 +57,7 @@ public class PartyService {
 
         boolean isOwner = Objects.equals(party.getPartyId(), user.getSpotifyId());
 
-        user.setUser(false);
-        user.setPlayer(false);
-        user.setHost(false);
+        user.clearRoles();
 
         if (asPlayer) {
             if (isOwner)

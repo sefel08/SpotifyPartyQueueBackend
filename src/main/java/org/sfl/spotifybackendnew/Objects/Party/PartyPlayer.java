@@ -130,6 +130,15 @@ public class PartyPlayer {
         return 1;
     }
 
+    public UUID getPlayerId() {
+        return playerUser.getUserId();
+    }
+    public void decouplePlayerSession() {
+        playerUser.setPartyId(null);
+        playerUser.clearRoles();
+        messagingService.sendPrivateUpdate(playerUser.getUserId(), MessageType.REFRESH_STATUS);
+    }
+
     private boolean handleSkipping() {
         PartySettings settings = partySession.getPartySettings();
         if (!settings.voteToSkip()) return false;
