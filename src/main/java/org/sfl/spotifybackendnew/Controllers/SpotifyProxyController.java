@@ -39,8 +39,8 @@ public class SpotifyProxyController {
     }
 
     @GetMapping("/playlist")
-    public List<Track> getPlaylistTracks(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestParam String playlistId) {
+    public List<Track> getPlaylistTracks(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestParam String playlistId, @RequestParam Integer offset) {
         OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
-        return spotifyProxyService.getPlaylistTracks(authorizedClient, playlistId);
+        return spotifyProxyService.getPlaylistTracks(authorizedClient, playlistId, offset);
     }
 }

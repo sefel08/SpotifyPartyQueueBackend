@@ -55,9 +55,14 @@ public class SpotifyClient {
             throw new SpotifyClientException("Failed to fetch user playlists: " + e.getMessage(), e);
         }
     }
-    public SpotifyPlaylist getPlaylistData(String accessToken, String playlistId) {
+    public List<SpotifyTrack> getPlaylistItems(String accessToken, String playlistId, Integer offset) {
         try {
-            String url = BASE_URL + "/playlists/" + playlistId;
+            UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(BASE_URL + "/playlists/" + playlistId + "/items")
+                    .queryParam("limit", 50);
+
+            if (offset != null) urlBuilder.queryParam("offset", offset);
+
+            String url = urlBuilder.build().toUriString();
 
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
@@ -70,14 +75,10 @@ public class SpotifyClient {
                     JsonNode.class
             ).getBody());
 
-            SpotifyPlaylist playlist = jsonMapper.treeToValue(json, SpotifyPlaylist.class);
-
-            List<SpotifyTrackWrapper> wrappers = jsonMapper.readerForListOf(SpotifyTrackWrapper.class)
-                    .readValue(json.get("items").get("items"));
-
-            playlist.setTracks(wrappers.stream().map(SpotifyTrackWrapper::getTrack).toList());
-
-            return playlist;
+            List<SpotifyTrackWrapper> spotifyTracksWrapped = jsonMapper.readerForListOf(SpotifyTrackWrapper.class).readValue(json.get("items"));
+            return spotifyTracksWrapped.stream()
+                    .map(SpotifyTrackWrapper::getTrack)
+                    .toList();
 
         } catch (Exception e) {
             throw new SpotifyClientException("Failed to fetch playlist data: " + e.getMessage(), e);

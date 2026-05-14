@@ -61,16 +61,16 @@ public class SpotifyProxyService {
             return List.of();
         }
     }
-    public List<Track> getPlaylistTracks(OAuth2AuthorizedClient authorizedClient, String playlistId) {
+    public List<Track> getPlaylistTracks(OAuth2AuthorizedClient authorizedClient, String playlistId, Integer offset) {
         try {
             String bearer = authorizedClient.getAccessToken().getTokenValue();
-            SpotifyPlaylist playlist = spotifyClient.getPlaylistData(bearer, playlistId);
+            List<SpotifyTrack> playlistItems = spotifyClient.getPlaylistItems(bearer, playlistId, offset);
 
-            if (playlist == null || playlist.getTracks() == null) {
+            if (playlistItems == null || playlistItems.isEmpty()) {
                 return List.of();
             }
 
-            return playlist.getTracks().stream()
+            return playlistItems.stream()
                     .map(this::mapToTrackDTO)
                     .toList();
 
