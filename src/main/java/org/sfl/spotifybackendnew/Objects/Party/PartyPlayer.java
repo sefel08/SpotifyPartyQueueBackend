@@ -11,7 +11,6 @@ import org.sfl.spotifybackendnew.Objects.SmartQueue.SmartQueue;
 import org.sfl.spotifybackendnew.Services.Messages.MessagingService;
 import org.sfl.spotifybackendnew.Services.Security.SpotifyAuthorizedClientService;
 import org.sfl.spotifybackendnew.Services.Spotify.SpotifyPlayerService;
-import org.springframework.security.core.Authentication;
 
 import java.util.HashSet;
 import java.util.List;
@@ -21,10 +20,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class PartyPlayer {
+    private final String partyId;
+
     // player device data
     private final String deviceId;
-    private final UserData playerUser;
-    private final Authentication playerAuthentication;
+    private final UserData playerUserSession;
+    private String userToken; // made to detect token refresh
 
     @Setter
     private SmartQueue partyQueue;
@@ -36,25 +37,23 @@ public class PartyPlayer {
     private final SpotifyPlayerService spotifyPlayerService;
     private final MessagingService messagingService;
     private final PartySession partySession;
-    private final String partyId;
 
     public PartyPlayer(
             String deviceId,
-            UserData playerUser,
-            Authentication playerAuthentication,
+            UserData playerUserSession,
             SpotifyAuthorizedClientService spotifyAuthorizedClientService,
             SpotifyPlayerService spotifyPlayerService,
             MessagingService messagingService,
             PartySession partySession
     ) {
         this.deviceId = deviceId;
-        this.playerUser = playerUser;
-        this.playerAuthentication = playerAuthentication;
+        this.playerUserSession = playerUserSession;
         this.spotifyAuthorizedClientService = spotifyAuthorizedClientService;
         this.spotifyPlayerService = spotifyPlayerService;
         this.messagingService = messagingService;
         this.partySession = partySession;
         this.partyId = partySession.getPartyId();
+        userToken = spotifyAuthorizedClientService.getAuthorizedClient(playerUserSession).getAccessToken().getTokenValue();
     }
 
     public synchronized boolean playNextTrack(boolean forceSkip) {
@@ -81,8 +80,15 @@ public class PartyPlayer {
             }
         }
 
+        String newToken = spotifyAuthorizedClientService.getAuthorizedClient(playerUserSession).getAccessToken().getTokenValue();
+        if (!newToken.equals(userToken)) {
+            log.info("Detected token refresh for player in party {}, updating token", partyId);
+            userToken = newToken;
+            messagingService.sendPrivateUpdate(playerUserSession.getUserId(), MessageType.REFRESH_TOKEN);
+        }
+
         boolean success = spotifyPlayerService.playTrack(
-                spotifyAuthorizedClientService.getAuthorizedClient(playerUser, playerAuthentication),
+                userToken,
                 nextTrack.getUri(),
                 deviceId
         );
@@ -131,12 +137,12 @@ public class PartyPlayer {
     }
 
     public UUID getPlayerId() {
-        return playerUser.getUserId();
+        return playerUserSession.getUserId();
     }
     public void decouplePlayerSession() {
-        playerUser.setPartyId(null);
-        playerUser.clearRoles();
-        messagingService.sendPrivateUpdate(playerUser.getUserId(), MessageType.REFRESH_STATUS);
+        playerUserSession.setPartyId(null);
+        playerUserSession.clearRoles();
+        messagingService.sendPrivateUpdate(playerUserSession.getUserId(), MessageType.REFRESH_STATUS);
     }
 
     private boolean handleSkipping() {

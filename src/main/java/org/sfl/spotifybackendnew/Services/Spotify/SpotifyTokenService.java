@@ -30,7 +30,7 @@ public class SpotifyTokenService {
 
     @Cacheable("spotifyAppToken")
     public String getApplicationToken() {
-        log.info("Pobieram nowy token aplikacji ze Spotify (Client Credentials Flow) używając RestTemplate");
+        log.info("Getting Spotify app token");
 
         String auth = clientId + ":" + clientSecret;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());

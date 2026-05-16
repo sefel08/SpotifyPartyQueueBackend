@@ -35,7 +35,7 @@ public class PlayerController {
     public record DeviceIdRequest(String deviceId) {}
 
     @PostMapping("/setup")
-    public ResponseEntity<?> setupPlayer(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestBody DeviceIdRequest deviceIdRequest) {
+    public ResponseEntity<?> setupPlayer(@AuthenticationPrincipal UserData user, @RequestBody DeviceIdRequest deviceIdRequest) {
         if (user.getPartyId() == null || !Objects.equals(user.getPartyId(), user.getSpotifyId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Only party owner can setup player");
@@ -44,9 +44,7 @@ public class PlayerController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Missing player permissions or Premium account required");
         }
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
-        partyService.initializePartyPlayer(user, authentication, deviceIdRequest.deviceId, spotifyAuthorizedClientService, spotifyPlayerService);
-
+        partyService.initializePartyPlayer(user, deviceIdRequest.deviceId, spotifyAuthorizedClientService, spotifyPlayerService);
         return ResponseEntity.ok().build();
     }
     @PostMapping("/cleanup")

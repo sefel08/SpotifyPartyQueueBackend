@@ -1,11 +1,12 @@
 package org.sfl.spotifybackendnew.Controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.sfl.spotifybackendnew.DTOs.Music.Playlist;
 import org.sfl.spotifybackendnew.DTOs.Music.Track;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Services.Security.SpotifyAuthorizedClientService;
 import org.sfl.spotifybackendnew.Services.Spotify.SpotifyProxyService;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,14 +34,14 @@ public class SpotifyProxyController {
     }
 
     @GetMapping("/user-playlists")
-    public List<Playlist> getUserPlaylists(@AuthenticationPrincipal UserData user, Authentication authentication) {
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
+    public List<Playlist> getUserPlaylists(@AuthenticationPrincipal UserData user) {
+        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user);
         return spotifyProxyService.getUserPlaylists(authorizedClient);
     }
 
     @GetMapping("/playlist")
-    public List<Track> getPlaylistTracks(@AuthenticationPrincipal UserData user, Authentication authentication, @RequestParam String playlistId, @RequestParam Integer offset) {
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
+    public List<Track> getPlaylistTracks(@AuthenticationPrincipal UserData user, @RequestParam String playlistId, @RequestParam Integer offset) {
+        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user);
         return spotifyProxyService.getPlaylistTracks(authorizedClient, playlistId, offset);
     }
 }

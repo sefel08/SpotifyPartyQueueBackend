@@ -12,7 +12,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
+import org.springframework.security.oauth2.client.*;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
@@ -22,7 +26,9 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.web.cors.CorsConfiguration;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -37,7 +43,6 @@ public class SecurityConfig {
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.userSessionService = userSessionService;
     }
-
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -90,12 +95,10 @@ public class SecurityConfig {
 
         return http.build();
     }
-
     @Bean
     public HttpSessionEventPublisher httpSessionEventPublisher() {
         return new HttpSessionEventPublisher();
     }
-
     @Bean
     public AuthenticationSuccessHandler customSuccessHandler() {
         return (request, response, authentication) -> {
@@ -111,4 +114,36 @@ public class SecurityConfig {
             response.sendRedirect("http://127.0.0.1:5173");
         };
     }
+
+//    @Bean
+//    public OAuth2AuthorizedClientManager oAuth2AuthorizedClientManager(
+//            ClientRegistrationRepository clientRegistrationRepository,
+//            OAuth2AuthorizedClientRepository authorizedClientRepository) {
+//
+//        OAuth2AuthorizedClientProvider authorizedClientProvider =
+//                OAuth2AuthorizedClientProviderBuilder.builder()
+//                        .authorizationCode()
+//                        .refreshToken(refreshTokenProvider -> {
+//                            refreshTokenProvider.clockSkew(java.time.Duration.ofMinutes(55));
+//                        })
+//                        .build();
+//
+//        DefaultOAuth2AuthorizedClientManager clientManager =
+//                new DefaultOAuth2AuthorizedClientManager(
+//                        clientRegistrationRepository,
+//                        authorizedClientRepository);
+//
+//        clientManager.setAuthorizedClientProvider(authorizedClientProvider);
+//
+//        clientManager.setContextAttributesMapper(oauth2AuthorizeRequest -> {
+//            Map<String, Object> contextAttributes = new HashMap<>();
+//            Object forceRefresh = oauth2AuthorizeRequest.getAttribute("forceRefresh");
+//            if (forceRefresh != null && (Boolean) forceRefresh) {
+//                contextAttributes.put("clockSkew", java.time.Duration.ofHours(1));
+//            }
+//            return contextAttributes;
+//        });
+//
+//        return clientManager;
+//    }
 }

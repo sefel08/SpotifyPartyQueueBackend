@@ -59,7 +59,7 @@ public class PartySession {
     }
     public void removeUser(UUID userId) {
         synchronized (userMapLock) {
-            if (partyPlayer.getPlayerId().equals(userId)) {
+            if (partyPlayer != null && partyPlayer.getPlayerId().equals(userId)) {
                 log.info("Player {} left the party, clearing player", userId);
                 clearPlayer();
             }
@@ -88,7 +88,7 @@ public class PartySession {
 
     public void initializePlayer(PartyPlayer player) {
         //check if player is already initialized, if so clear it first
-        if (partyPlayer != null) {
+        if (partyPlayer != null && partyPlayer.getPlayerId() != player.getPlayerId()) {
             log.info("Player already initialized for party {}, clearing existing player before initializing new one", partyId);
             partyPlayer.decouplePlayerSession();
             clearPlayer();

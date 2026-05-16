@@ -108,7 +108,7 @@ public class PartyService {
         party.updateUser(user.getUserId(), profile, user);
     }
 
-    public void initializePartyPlayer(UserData user, Authentication authentication, String deviceId, SpotifyAuthorizedClientService spotifyAuthorizedClientService, SpotifyPlayerService spotifyPlayerService) {
+    public void initializePartyPlayer(UserData user, String deviceId, SpotifyAuthorizedClientService spotifyAuthorizedClientService, SpotifyPlayerService spotifyPlayerService) {
         validatePartyId(user.getPartyId());
         PartySession party = Optional.ofNullable(partySessionMap.get(user.getPartyId()))
                 .orElseThrow(() -> new PartyNotFoundException(user.getPartyId()));
@@ -116,7 +116,6 @@ public class PartyService {
         PartyPlayer player = new PartyPlayer(
                 deviceId,
                 user,
-                authentication,
                 spotifyAuthorizedClientService,
                 spotifyPlayerService,
                 messagingService,

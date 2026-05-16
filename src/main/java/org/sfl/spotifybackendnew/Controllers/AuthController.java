@@ -1,5 +1,8 @@
 package org.sfl.spotifybackendnew.Controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Services.Security.SpotifyAuthorizedClientService;
 import org.springframework.security.core.Authentication;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 public class AuthController {
@@ -46,19 +50,20 @@ public class AuthController {
     }
 
     @GetMapping("/spotify-token")
-    public Map<String, Object> getSpotifyToken(@AuthenticationPrincipal UserData user, Authentication authentication) {
-        Map<String, Object> response = new HashMap<>();
+    public Map<String, Object> getSpotifyToken(@AuthenticationPrincipal UserData user) {
+        Map<String, Object> responseBody = new HashMap<>();
 
-        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user, authentication);
+        log.info("Getting Spotify token for user: {}", user.getUsername());
+        OAuth2AuthorizedClient authorizedClient = spotifyAuthorizedClientService.getAuthorizedClient(user);
         String spotifyUserToken = null;
         if (authorizedClient != null) {
             spotifyUserToken = authorizedClient.getAccessToken().getTokenValue();
         } else if (user.isSpotifyAuthenticated()) {
             // user should have token but has not, probably session expired or something, needs to reauthenticate
-            response.put("needsReauth", true);
+            responseBody.put("needsReauth", true);
         }
-        response.put("spotifyUserToken", spotifyUserToken);
+        responseBody.put("spotifyUserToken", spotifyUserToken);
 
-        return response;
+        return responseBody;
     }
 }
