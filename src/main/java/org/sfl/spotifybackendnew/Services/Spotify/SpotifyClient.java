@@ -155,18 +155,6 @@ public class SpotifyClient {
     }
 
     // player service
-    public void initializePlayer(String accessToken, String deviceId) {
-        try {
-            String url = BASE_URL + "/me/player";
-            Map<String, Object> body = Map.of(
-                    "device_ids", List.of(deviceId),
-                    "play", false
-            );
-            sendSpotifyPlayerRequest(accessToken, url, HttpMethod.PUT, body);
-        } catch (Exception e) {
-            throw new SpotifyClientException("Failed to initialize player: " + e.getMessage(), e);
-        }
-    }
     public void playTrack(String accessToken, String trackUri, String deviceId) {
         try {
             String url = BASE_URL + "/me/player/play?device_id=" + deviceId;

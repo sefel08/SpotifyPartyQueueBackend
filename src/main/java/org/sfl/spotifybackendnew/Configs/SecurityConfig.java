@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.sfl.spotifybackendnew.DTOs.User.UserData;
 import org.sfl.spotifybackendnew.Services.User.UserSessionService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,9 @@ import java.util.UUID;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final UserSessionService userSessionService;
 
@@ -51,7 +55,7 @@ public class SecurityConfig {
             .requestCache(RequestCacheConfigurer::disable)
             .cors(cors -> cors.configurationSource(request -> {
                 var config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("http://127.0.0.1:5173"));
+                config.setAllowedOrigins(List.of(frontendUrl));
                 config.setAllowedMethods(List.of("*"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setAllowCredentials(true);
@@ -83,14 +87,14 @@ public class SecurityConfig {
                     .successHandler(customSuccessHandler())
                     .failureHandler((request, response, exception) -> {
                         log.error("OAuth2 login failed: ", exception);
-                        response.sendRedirect("http://127.0.0.1:5173?loginError=" + exception.getMessage());
+                        response.sendRedirect(frontendUrl + "?loginError=" + exception.getMessage());
                     })
                     .loginPage("/login")
             )
             .sessionManagement(session -> session
                     .maximumSessions(1)
                     .maxSessionsPreventsLogin(false)
-                    .expiredUrl("http://127.0.0.1:5173/expired")
+                    .expiredUrl(frontendUrl + "/expired")
             );
 
         return http.build();
@@ -111,39 +115,7 @@ public class SecurityConfig {
             }
 
             userSessionService.initializeSessionAfterSpotifyLogin(authentication, request, response, oldUser);
-            response.sendRedirect("http://127.0.0.1:5173");
+            response.sendRedirect(frontendUrl);
         };
     }
-
-//    @Bean
-//    public OAuth2AuthorizedClientManager oAuth2AuthorizedClientManager(
-//            ClientRegistrationRepository clientRegistrationRepository,
-//            OAuth2AuthorizedClientRepository authorizedClientRepository) {
-//
-//        OAuth2AuthorizedClientProvider authorizedClientProvider =
-//                OAuth2AuthorizedClientProviderBuilder.builder()
-//                        .authorizationCode()
-//                        .refreshToken(refreshTokenProvider -> {
-//                            refreshTokenProvider.clockSkew(java.time.Duration.ofMinutes(55));
-//                        })
-//                        .build();
-//
-//        DefaultOAuth2AuthorizedClientManager clientManager =
-//                new DefaultOAuth2AuthorizedClientManager(
-//                        clientRegistrationRepository,
-//                        authorizedClientRepository);
-//
-//        clientManager.setAuthorizedClientProvider(authorizedClientProvider);
-//
-//        clientManager.setContextAttributesMapper(oauth2AuthorizeRequest -> {
-//            Map<String, Object> contextAttributes = new HashMap<>();
-//            Object forceRefresh = oauth2AuthorizeRequest.getAttribute("forceRefresh");
-//            if (forceRefresh != null && (Boolean) forceRefresh) {
-//                contextAttributes.put("clockSkew", java.time.Duration.ofHours(1));
-//            }
-//            return contextAttributes;
-//        });
-//
-//        return clientManager;
-//    }
 }
