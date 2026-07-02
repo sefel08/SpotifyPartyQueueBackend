@@ -69,8 +69,9 @@ public class PartyController {
 
         try {
             log.info("User {} is leaving party {}", user.getUserId(), user.getPartyId());
-            partyService.removeUserFromParty(user.getPartyId(), user.getUserId());
+            partyService.removeUserFromParty(user.getPartyId(), user.getUserId(), user.isPlayer());
             user.setPartyId(null);
+            user.clearRoles();
             return new SimpleResponse(true, "Left the party successfully");
         } catch (PartyNotFoundException e) {
             log.error("Party not found for user {} when trying to leave", user.getUserId());

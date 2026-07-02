@@ -63,11 +63,12 @@ public class PartySession {
                 log.info("Player {} left the party, clearing player", userId);
                 clearPlayer();
             }
-            userMap.remove(userId);
-            joinOrder.remove(userId);
-            log.info("Removed user {} from party with id {}", userId, partyId);
-            log.info("Current users in party {}: {} ({})", partyId, userMap.keySet(), userMap.size());
-
+            if (userMap.remove(userId) != null) {
+                joinOrder.remove(userId);
+                messagingService.sendUpdate(partyId, MessageType.PARTY_USERS_CHANGED);
+                log.info("Removed user {} from party with id {}", userId, partyId);
+                log.info("Current users in party {}: {} ({})", partyId, userMap.keySet(), userMap.size());
+            }
         }
     }
     public boolean isUserInParty(UUID userId) {

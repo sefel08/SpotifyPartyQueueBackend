@@ -32,7 +32,7 @@ public class SessionComponent {
                 log.info("Session of user {} timed out. Removing from party: {}", user.getDisplayName(), user.getPartyId() != null ? user.getPartyId() : "None");
 
                 if (user.getPartyId() != null) {
-                    partyService.removeUserFromParty(user.getPartyId(), user.getUserId());
+                    partyService.removeUserFromParty(user.getPartyId(), user.getUserId(), user.isPlayer());
                     user.setPartyId(null);
                     user.clearRoles();
                     messagingService.sendPrivateUpdate(user.getUserId(), MessageType.REFRESH_STATUS);

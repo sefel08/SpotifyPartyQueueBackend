@@ -89,15 +89,12 @@ public class PartyService {
         return new SimpleResponse(true, "Joined party successfully");
     }
 
-    public void removeUserFromParty(String partyId, UUID userId) {
+    public void removeUserFromParty(String partyId, UUID userId, boolean isPlayer) {
         validatePartyId(partyId);
         PartySession party = Optional.ofNullable(partySessionMap.get(partyId))
                 .orElseThrow(() -> new PartyNotFoundException(partyId));
-
-        if (party.isUserInParty(userId)) {
+        if (isPlayer || party.isUserInParty(userId)) // remove if user is player or user is participant
             party.removeUser(userId);
-            messagingService.sendUpdate(partyId, MessageType.PARTY_USERS_CHANGED);
-        }
     }
 
     public void updateUserProfile(String partyId, UserData user) {
